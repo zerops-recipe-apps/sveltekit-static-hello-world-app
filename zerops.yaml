@@ -1,0 +1,62 @@
+# The 'prod' setup builds optimized static assets for Nginx
+# serving. The 'dev' setup deploys source code for live
+# SSH-based development.
+zerops:
+  - setup: prod
+    build:
+      # Build with Node.js (npm/npx), serve with Nginx.
+      # The build container compiles SvelteKit into static
+      # HTML/CSS/JS — Node.js is NOT present at runtime.
+      base: nodejs@22
+
+      # Build-time env vars are baked into the static output.
+      # No runtime process exists to read them after deploy.
+      # RUNTIME_APP_ENV exposes the runtime var APP_ENV here
+      # so each environment can configure its own label
+      # without changing code or rebuilding from a branch.
+      envVariables:
+        PUBLIC_APP_ENV: ${RUNTIME_APP_ENV}
+
+      buildCommands:
+        # npm ci installs exact versions from package-lock.json
+        # for reproducible production builds.
+        - npm ci
+        - npm run build
+
+      # Strip 'build/' prefix — contents become the Nginx root,
+      # so build/index.html is served at /.
+      deployFiles:
+        - build/~
+
+      cache:
+        - node_modules
+
+    run:
+      # Nginx serves the compiled output — no Node.js at runtime.
+      # Built-in SPA fallback serves index.html for all routes
+      # that don't match a static file, enabling client-side
+      # routing without custom run.routing configuration.
+      base: static
+
+  - setup: dev
+    build:
+      base: nodejs@22
+      os: ubuntu
+      buildCommands:
+        # npm install (not ci) — dev may lack a lock file or
+        # have in-progress dependency changes.
+        - npm install
+      # Deploy full source so the developer has all files
+      # ready in the runtime container on SSH login.
+      deployFiles: ./
+      cache:
+        - node_modules
+
+    run:
+      # nodejs@22 runtime gives the developer Node.js tools
+      # via SSH — needed to run 'npm run dev' or similar.
+      base: nodejs@22
+      os: ubuntu
+      # Keep the container alive — developer starts their
+      # own dev server via SSH, not via a start command.
+      start: zsc noop --silent
