@@ -9,19 +9,16 @@ zerops:
       # HTML/CSS/JS — Node.js is NOT present at runtime.
       base: nodejs@22
 
-      # Build-time env vars are baked into the static output.
-      # No runtime process exists to read them after deploy.
-      # RUNTIME_APP_ENV exposes the runtime var APP_ENV here
-      # so each environment can configure its own label
-      # without changing code or rebuilding from a branch.
-      envVariables:
-        PUBLIC_APP_ENV: ${RUNTIME_APP_ENV}
-
       buildCommands:
         # npm ci installs exact versions from package-lock.json
         # for reproducible production builds.
         - npm ci
-        - npm run build
+        # Zerops injects the runtime var APP_ENV into the build
+        # environment as RUNTIME_APP_ENV. Setting PUBLIC_APP_ENV
+        # inline passes it to Vite, which bakes it into the
+        # static output — no runtime process can read env vars
+        # in a static deployment.
+        - PUBLIC_APP_ENV=${RUNTIME_APP_ENV:-production} npm run build
 
       # Strip 'build/' prefix — contents become the Nginx root,
       # so build/index.html is served at /.
