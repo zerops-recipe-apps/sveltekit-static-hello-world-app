@@ -6,7 +6,7 @@ Minimal SvelteKit app using `@sveltejs/adapter-static`, compiled to static HTML/
 
 - HTTP port: `5173` (dev server) / `80` (prod nginx)
 - Siblings: —
-- Runtime base: `nodejs@22` (dev) / `static` (prod)
+- Runtime base: `nodejs@24` (dev) / `static` (prod)
 
 ## Zerops dev
 
